@@ -7,14 +7,15 @@
   resolved "https://registry.yarnpkg.com/@ant-design/icons-react-native/-/icons-react-native-1.0.2.tgz#28648eacb808a1fae0ad59d691bbb472a6ffc26e"
   integrity sha512-cpTHdeGdxS+kp59rrtHZw6guXJQyDKzvLxGUf2qXeTlua5nKLG1kVoSMtW5tIPep21RcL6gVdwQl5+/mUMk9/w==
 
-"@ant-design/react-native@^3.1.15":
-  version "3.1.15"
-  resolved "https://registry.yarnpkg.com/@ant-design/react-native/-/react-native-3.1.15.tgz#3720ac06670d22af934130efd85fb81b0ad4d0df"
-  integrity sha512-Sj02TfQ+Mu3VAtqkPdXcZU2zULkewf7m4h+ERsMrQjzRMJrifEugjKyrmZ1uLr4gRMltZnogeYjPwt5leyICLg==
+"@ant-design/react-native@^3.2.0":
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/@ant-design/react-native/-/react-native-3.2.0.tgz#9a0d55b37797a92c35071cb9b59e5d6c84b0d14c"
+  integrity sha512-5ch9hdYjWuht+aFfMa87anpR5AVZW4PZhdVLCIhGvB4VVLKN/znzBgb9cX0G/3ixtZ5QCeMoc293x82kLSIpsg==
   dependencies:
     "@ant-design/icons-react-native" "^1.0.2"
     "@bang88/react-native-drawer-layout" "^2.0.3"
     "@bang88/react-native-ultimate-listview" "^3.3.0"
+    "@react-native-community/viewpager" "^1.1.7"
     array-tree-filter "~2.1.0"
     babel-runtime "^6.x"
     deepmerge "^3.0.0"
@@ -944,6 +945,11 @@
     ws "^1.1.0"
     xcode "^2.0.0"
     xmldoc "^0.4.0"
+
+"@react-native-community/viewpager@^1.1.7":
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/@react-native-community/viewpager/-/viewpager-1.1.7.tgz#7d3b1631f1ec91145db92a8e25c80d53027e96ba"
+  integrity sha512-k9v2KJtAprNPq7IZmedD2VLMePvPW+ohX3uDnkpoKritBji+/RtRmTKrdtPi3Uvp0toq/KtPttAds1dr7AZNpw==
 
 "@types/fbemitter@^2.0.32":
   version "2.0.32"
@@ -2100,7 +2106,7 @@ expo-file-system@^7.0.0, expo-file-system@~7.0.0:
   dependencies:
     uuid-js "^0.7.5"
 
-expo-font@~7.0.0:
+expo-font@^7.0.0, expo-font@~7.0.0:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/expo-font/-/expo-font-7.0.0.tgz#0b36f5c91a77eb718fb20559b2c0c58d762ba535"
   integrity sha512-OVlUydfexjq1u57Xlymcx5egfFF2WZ5MXkg3GGjHyiSMfp09inZ7OzAu+O/TXjxjlaq9d6vBXiwVxqQoUIlx1Q==
