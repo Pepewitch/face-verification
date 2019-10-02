@@ -1,10 +1,17 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import * as Permissions from "expo-permissions";
 import styled from "styled-components/native";
-import { View, Dimensions, TouchableOpacity, Text } from "react-native";
+import {
+  View,
+  Dimensions,
+  TouchableOpacity,
+  Text,
+  CameraRoll
+} from "react-native";
 import { Camera } from "expo-camera";
 import * as FaceDetector from "expo-face-detector";
 import _ from "lodash";
+import * as ImageManipulator from "expo-image-manipulator";
 
 const StyledCamera = styled(Camera)`
   width: ${props => props.width};
@@ -29,18 +36,25 @@ const BoundingBox = styled.View`
   left: ${props => props.face.bounds.origin.x - boundingPad};
   width: ${props => props.face.bounds.size.width + 2 * boundingPad};
   height: ${props => props.face.bounds.size.height + 2 * boundingPad};
-  border: 2px solid rgba(255, 0, 0, 0.8);
+  border: ${props =>
+    props.highlight
+      ? `4px solid rgba(255, 0, 0, 0.8)`
+      : `2px solid rgba(0, 0, 255, 0.6)`};
   border-radius: 8px;
 `;
 
-const useCameraPermission = () => {
+const usePermission = () => {
   const [hasCameraPermission, setHasCameraPermission] = useState(null);
+  const [hasCameraRollPermission, setHasCameraRollPermission] = useState(null);
   useEffect(() => {
     Permissions.askAsync(Permissions.CAMERA).then(({ status }) => {
       setHasCameraPermission(status === "granted");
     });
+    Permissions.askAsync(Permissions.CAMERA_ROLL).then(({ status }) => {
+      setHasCameraRollPermission(status === "granted");
+    });
   }, []);
-  return hasCameraPermission;
+  return { hasCameraPermission, hasCameraRollPermission };
 };
 
 const validateFace = face => {
@@ -52,24 +66,91 @@ const validateFace = face => {
   );
 };
 
-export const FaceDetectCamera = () => {
-  const hasCameraPermission = useCameraPermission();
+const useCamera = () => {
   const dimensions = Dimensions.get("window");
   const imageHeight = Math.round((dimensions.width * 4) / 3);
   const imageWidth = dimensions.width;
+  const cameraRef = useRef(null);
+  const takePicture = async () => {
+    if (cameraRef.current) {
+      const camera = cameraRef.current;
+      const photo = await camera.takePictureAsync();
+      return photo;
+    }
+    return null;
+  };
+  return { imageHeight, imageWidth, cameraRef, takePicture };
+};
+
+const useFaceDetection = () => {
   const [faces, setFaces] = useState([]);
   const throttledSetFaces = useCallback(_.throttle(setFaces, 50), [setFaces]);
   const onFacesDetected = obj => {
     const { faces } = obj;
     throttledSetFaces(faces.filter(face => validateFace(face)));
   };
+  const detectFace = async imageUri => {
+    const options = { mode: FaceDetector.Constants.Mode.fast };
+    return await FaceDetector.detectFacesAsync(imageUri, options);
+  };
+  return { faces, onFacesDetected, detectFace };
+};
+
+const crop = async (uri, bounds) => {
+  const actions = [
+    {
+      crop: {
+        originX: bounds.origin.x - boundingPad,
+        originY: bounds.origin.y - boundingPad,
+        width: bounds.size.width + 2 * boundingPad,
+        height: bounds.size.height + 2 * boundingPad
+      }
+    }
+  ];
+  const saveOptions = { format: ImageManipulator.SaveFormat.PNG };
+  return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
+};
+
+const save = async uri => {
+  return CameraRoll.saveToCameraRoll(uri);
+};
+
+export const FaceDetectCamera = () => {
+  const { hasCameraPermission, hasCameraRollPermission } = usePermission();
+  const { imageHeight, imageWidth, cameraRef, takePicture } = useCamera();
+  const { faces, onFacesDetected, detectFace } = useFaceDetection();
+  const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   if (!hasCameraPermission) {
     return null;
   }
+  const onPress = async () => {
+    if (!isTakingPhoto) {
+      setIsTakingPhoto(true);
+      try {
+        const photo = await takePicture();
+        if (photo) {
+          const { faces } = await detectFace(photo.uri);
+          const crops = await Promise.all(
+            faces.map(face => crop(photo.uri, face.bounds))
+          );
+          if (hasCameraRollPermission) {
+            await Promise.all(
+              crops.map(croppedImage => save(croppedImage.uri))
+            );
+          }
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setIsTakingPhoto(false);
+      }
+    }
+  };
   return (
     <View style={{ flex: 1, justifyContent: "center" }}>
       <View style={{ position: "relative" }}>
         <StyledCamera
+          ref={cameraRef}
           width={imageWidth}
           height={imageHeight}
           ratio={"4:3"}
@@ -79,12 +160,16 @@ export const FaceDetectCamera = () => {
             detectLandmarks: FaceDetector.Constants.Landmarks.none,
             runClassifications: FaceDetector.Constants.Classifications.none
           }}
-        ></StyledCamera>
+        />
         {faces.map((face, index) => (
-          <BoundingBox face={face} key={index} />
+          <BoundingBox
+            highlight={face === _.maxBy(faces, face => face.bounds.size.width)}
+            face={face}
+            key={index}
+          />
         ))}
       </View>
-      <StyledTouchableOpacity />
+      <StyledTouchableOpacity disable={isTakingPhoto} onPress={onPress} />
     </View>
   );
 };
