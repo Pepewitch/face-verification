@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components/native";
-import { Text, Platform, StatusBar, TouchableOpacity } from "react-native";
-import { FaceDetectCamera } from "./components/FaceDetectCamera";
+import { Platform, StatusBar } from "react-native";
 import { AppLoading } from "expo";
 import * as Font from "expo-font";
 import { Provider } from "@ant-design/react-native";
+import { createAppContainer } from "react-navigation";
+import { createStackNavigator } from "react-navigation-stack";
+import { HomeScreen } from "./screens/HomeScreen";
+import { VerifyScreen } from "./screens/VerifyScreen";
 
 const StyledView = styled.View`
   padding-top: ${Platform.OS === "ios" ? 0 : StatusBar.currentHeight}px;
@@ -22,6 +25,26 @@ const loadFont = async () => {
   });
 };
 
+const AppNavigator = createStackNavigator(
+  {
+    Home: {
+      screen: HomeScreen
+    },
+    Verify: {
+      screen: VerifyScreen
+    }
+  },
+  {
+    initialRouteName: "Home",
+    headerMode: "none",
+    navigationOptions: {
+      headerVisible: false
+    }
+  }
+);
+
+const AppContainer = createAppContainer(AppNavigator);
+
 export default () => {
   const [isReady, setIsReady] = useState(false);
   useEffect(() => {
@@ -33,7 +56,7 @@ export default () => {
   return (
     <Provider>
       <StyledView>
-        <FaceDetectCamera />
+        <AppContainer />
       </StyledView>
     </Provider>
   );

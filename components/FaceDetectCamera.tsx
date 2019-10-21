@@ -110,7 +110,7 @@ const useFaceDetection = () => {
   const detectFace = async imageUri => {
     const options = {
       mode: FaceDetector.Constants.Mode.fast,
-      detectLandmarks: FaceDetector.Constants.Landmarks.none,
+      detectLandmarks: FaceDetector.Constants.Landmarks.all,
       runClassifications: FaceDetector.Constants.Classifications.none
     };
     return await FaceDetector.detectFacesAsync(imageUri, options);
@@ -129,7 +129,10 @@ const crop = async (uri, bounds) => {
       }
     }
   ];
-  const saveOptions = { format: ImageManipulator.SaveFormat.JPEG };
+  const saveOptions = {
+    format: ImageManipulator.SaveFormat.JPEG,
+    base64: true
+  };
   return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
 };
 
@@ -147,7 +150,53 @@ const save = async uri => {
   return CameraRoll.saveToCameraRoll(uri);
 };
 
-export const FaceDetectCamera = () => {
+const verify = async (face, croppedFace) => {
+  const originX = face["bounds"]["origin"]["x"];
+  const originY = face["bounds"]["origin"]["y"];
+
+  const leftEyeX = face["leftEyePosition"]["x"] - originX;
+  const leftEyeY = face["leftEyePosition"]["y"] - originY;
+
+  const rightEyeX = face["rightEyePosition"]["x"] - originX;
+  const rightEyeY = face["rightEyePosition"]["y"] - originY;
+
+  const noseX = face["noseBasePosition"]["x"] - originX;
+  const noseY = face["noseBasePosition"]["y"] - originY;
+
+  const leftMouthX = face["leftMouthPosition"]["x"] - originX;
+  const leftMouthY = face["leftMouthPosition"]["y"] - originY;
+
+  const rightMouthX = face["rightMouthPosition"]["x"] - originX;
+  const rightMouthY = face["rightMouthPosition"]["y"] - originY;
+
+  const data = {
+    faceImg: croppedFace.base64,
+    landmarks: [
+      [leftEyeX, leftEyeY],
+      [rightEyeX, rightEyeY],
+      [noseX, noseY],
+      [leftMouthX, leftMouthY],
+      [rightMouthX, rightMouthY]
+    ]
+  };
+
+  const output = await fetch(
+    "https://rightguy-nauehecpba-an.a.run.app/classify",
+    {
+      method: "post",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    }
+  );
+
+  const verified = await output.json();
+  return verified;
+};
+
+export const FaceDetectCamera = ({ children, onTakingPhoto }) => {
   const { hasCameraPermission, hasCameraRollPermission } = usePermission();
   const { imageHeight, imageWidth, cameraRef, takePicture } = useCamera();
   const { faces, onFacesDetected, detectFace } = useFaceDetection();
@@ -156,46 +205,50 @@ export const FaceDetectCamera = () => {
     return null;
   }
   const onPress = async () => {
-    if (!isTakingPhoto) {
-      setIsTakingPhoto(true);
-      try {
-        const photo = await takePicture();
-        if (photo) {
-          const resized = await resize(photo.uri);
-          const { faces } = await detectFace(resized.uri);
-          const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
-          if (biggestFace) {
-            const croppedFace = await crop(resized.uri, biggestFace.bounds);
-            alert(
-              "Verify",
+    try {
+      const photo = await takePicture();
+      if (photo) {
+        const resized = await resize(photo.uri);
+        const { faces } = await detectFace(resized.uri);
+        const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
+        if (biggestFace) {
+          const croppedFace = await crop(resized.uri, biggestFace.bounds);
+          const verified = await verify(biggestFace, croppedFace);
+          alert(
+            "Verify",
+            <View>
+              <Text style={{ alignSelf: "center" }}>
+                Recognition ID: {verified.outputID}
+              </Text>
               <Image
-                style={{ width: 300, height: 300 }}
+                style={{ width: 250, height: 250 }}
                 resizeMode="contain"
                 source={{ uri: croppedFace.uri }}
-              />,
-              [
-                {
-                  text: "Cancel",
-                  onPress: () => console.log("cancel"),
-                  style: "default"
-                },
-                { text: "OK", onPress: () => console.log("ok") }
-              ]
-            );
-            if (hasCameraRollPermission) {
-              await save(croppedFace.uri);
-            }
-          } else {
-            alert("Verify", "Cannot detect face, please try again.", [
+              />
+            </View>,
+            [
+              {
+                text: "Cancel",
+                onPress: () => console.log("cancel"),
+                style: "default"
+              },
               { text: "OK", onPress: () => console.log("ok") }
-            ]);
+            ]
+          );
+          if (hasCameraRollPermission) {
+            await save(croppedFace.uri);
           }
+        } else {
+          alert("Verify", "Cannot detect face, please try again.", [
+            { text: "OK", onPress: () => console.log("ok") }
+          ]);
         }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsTakingPhoto(false);
       }
+    } catch (error) {
+      console.error(error);
+      alert("Verify", "Error occur.", [
+        { text: "Close", onPress: () => console.log("ok") }
+      ]);
     }
   };
   return (
@@ -217,7 +270,8 @@ export const FaceDetectCamera = () => {
           <BoundingBox
             highlight={face === _.maxBy(faces, face => face.bounds.size.width)}
             alignment={
-              Math.abs(face.rollAngle) < 15 && Math.abs(face.yawAngle) < 15
+              // Math.abs(face.rollAngle) < 15 && Math.abs(face.yawAngle) < 15
+              true
             }
             face={face}
             key={index}
@@ -226,12 +280,7 @@ export const FaceDetectCamera = () => {
         {isTakingPhoto && <Backdrop />}
       </View>
       <StyledTouchableOpacity disabled={isTakingPhoto} onPress={onPress} />
-      <ActivityIndicator
-        size="large"
-        toast
-        text="Loading..."
-        animating={isTakingPhoto}
-      />
+      {children}
     </View>
   );
 };
