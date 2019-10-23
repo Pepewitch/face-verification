@@ -41,7 +41,7 @@ const useRooms = roomsRef => {
         setError(e);
         setLoading(false);
       });
-  }, [roomsRef]);
+  }, []);
   return { rooms, loading, error };
 };
 

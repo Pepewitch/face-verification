@@ -1,18 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled from "styled-components/native";
-import {
-  View,
-  Dimensions,
-  TouchableOpacity,
-  Text,
-  CameraRoll,
-  Image
-} from "react-native";
+import { View, Dimensions, CameraRoll } from "react-native";
 import { Camera } from "expo-camera";
 import * as FaceDetector from "expo-face-detector";
 import _ from "lodash";
-import * as ImageManipulator from "expo-image-manipulator";
-import { Modal, Button, ActivityIndicator } from "@ant-design/react-native";
+import { Modal } from "@ant-design/react-native";
 import { usePermission } from "../hooks/usePermission";
 
 const { alert } = Modal;
@@ -33,7 +25,7 @@ const StyledTouchableOpacity = styled.TouchableOpacity`
   opacity: ${props => (props.disabled ? 0.2 : 1)};
 `;
 
-const boundingPad = 8;
+const boundingPad = 4;
 
 const BoundingBox = styled.View`
   position: absolute;
@@ -44,9 +36,9 @@ const BoundingBox = styled.View`
   border: ${props =>
     props.highlight
       ? props.alignment
-        ? `4px solid rgba(0, 255, 0, 0.8)`
-        : `4px solid rgba(255, 0, 0, 0.8)`
-      : `2px solid rgba(0, 0, 255, 0.6)`};
+        ? `2px solid rgba(0, 255, 0, 0.8)`
+        : `2px solid rgba(255, 0, 0, 0.8)`
+      : `1px solid rgba(0, 0, 255, 0.6)`};
   border-radius: 8px;
 `;
 
@@ -93,148 +85,32 @@ const useFaceDetection = () => {
     const { faces } = obj;
     throttledSetFaces(faces.filter(face => validateFace(face)));
   };
-  const detectFace = async imageUri => {
-    const options = {
-      mode: FaceDetector.Constants.Mode.fast,
-      detectLandmarks: FaceDetector.Constants.Landmarks.all,
-      runClassifications: FaceDetector.Constants.Classifications.none
-    };
-    return await FaceDetector.detectFacesAsync(imageUri, options);
-  };
-  return { faces, onFacesDetected, detectFace };
-};
 
-const crop = async (uri, bounds) => {
-  const actions = [
-    {
-      crop: {
-        originX: bounds.origin.x,
-        originY: bounds.origin.y,
-        width: bounds.size.width,
-        height: bounds.size.height
-      }
-    }
-  ];
-  const saveOptions = {
-    format: ImageManipulator.SaveFormat.JPEG,
-    base64: true
-  };
-  return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
-};
-
-const resize = async uri => {
-  const actions = [
-    {
-      resize: { width: 1000 }
-    }
-  ];
-  const saveOptions = { format: ImageManipulator.SaveFormat.JPEG };
-  return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
-};
-
-const save = async uri => {
-  return CameraRoll.saveToCameraRoll(uri);
-};
-
-const verify = async (face, croppedFace) => {
-  const originX = face["bounds"]["origin"]["x"];
-  const originY = face["bounds"]["origin"]["y"];
-
-  const leftEyeX = face["leftEyePosition"]["x"] - originX;
-  const leftEyeY = face["leftEyePosition"]["y"] - originY;
-
-  const rightEyeX = face["rightEyePosition"]["x"] - originX;
-  const rightEyeY = face["rightEyePosition"]["y"] - originY;
-
-  const noseX = face["noseBasePosition"]["x"] - originX;
-  const noseY = face["noseBasePosition"]["y"] - originY;
-
-  const leftMouthX = face["leftMouthPosition"]["x"] - originX;
-  const leftMouthY = face["leftMouthPosition"]["y"] - originY;
-
-  const rightMouthX = face["rightMouthPosition"]["x"] - originX;
-  const rightMouthY = face["rightMouthPosition"]["y"] - originY;
-
-  const data = {
-    faceImg: croppedFace.base64,
-    landmarks: [
-      [leftEyeX, leftEyeY],
-      [rightEyeX, rightEyeY],
-      [noseX, noseY],
-      [leftMouthX, leftMouthY],
-      [rightMouthX, rightMouthY]
-    ]
-  };
-
-  const output = await fetch(
-    "https://rightguy-nauehecpba-an.a.run.app/classify",
-    {
-      method: "post",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    }
-  );
-
-  const verified = await output.json();
-  return verified;
+  return { faces, onFacesDetected };
 };
 
 export const FaceDetectCamera = ({ children, onTakingPhoto }) => {
-  const { hasCameraPermission, hasCameraRollPermission } = usePermission();
+  const { hasCameraPermission } = usePermission();
   const { imageHeight, imageWidth, cameraRef, takePicture } = useCamera();
-  const { faces, onFacesDetected, detectFace } = useFaceDetection();
+  const { faces, onFacesDetected } = useFaceDetection();
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   if (!hasCameraPermission) {
     return null;
   }
   const onPress = async () => {
     try {
+      setIsTakingPhoto(true);
       const photo = await takePicture();
       if (photo) {
-        const resized = await resize(photo.uri);
-        const { faces } = await detectFace(resized.uri);
-        const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
-        if (biggestFace) {
-          const croppedFace = await crop(resized.uri, biggestFace.bounds);
-          const verified = await verify(biggestFace, croppedFace);
-          alert(
-            "Verify",
-            <View>
-              <Text style={{ alignSelf: "center" }}>
-                Recognition ID: {verified.outputID}
-              </Text>
-              <Image
-                style={{ width: 250, height: 250 }}
-                resizeMode="contain"
-                source={{ uri: croppedFace.uri }}
-              />
-            </View>,
-            [
-              {
-                text: "Cancel",
-                onPress: () => console.log("cancel"),
-                style: "default"
-              },
-              { text: "OK", onPress: () => console.log("ok") }
-            ]
-          );
-          if (hasCameraRollPermission) {
-            await save(croppedFace.uri);
-          }
-        } else {
-          alert("Verify", "Cannot detect face, please try again.", [
-            { text: "OK", onPress: () => console.log("ok") }
-          ]);
-        }
+        onTakingPhoto(photo);
       }
+      setIsTakingPhoto(false);
     } catch (error) {
       console.error(error);
-      alert("Verify", "Error occur.", [
+      alert("Taking photo", "Error occur.", [
         { text: "Close", onPress: () => console.log("ok") }
       ]);
+      setIsTakingPhoto(false);
     }
   };
   return (

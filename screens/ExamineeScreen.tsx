@@ -5,8 +5,8 @@ import { useNavigationParam, useNavigation } from "react-navigation-hooks";
 import styled from "styled-components/native";
 import { List } from "@ant-design/react-native";
 import { useDocument } from "react-firebase-hooks/firestore";
-import { AntDesign } from "@expo/vector-icons";
 import { ScrollContainer } from "../components/ScrollContainer";
+import { StatusIcon } from "../components/StatusIcon";
 
 const Item = List.Item;
 const Brief = Item.Brief;
@@ -21,54 +21,25 @@ const ExamineeTitle = styled.Text`
   align-self: flex-start;
 `;
 
-const ExamineesList = ({ examinees }) => {
+const ExamineesList = ({ examinees, room }) => {
   const { navigate } = useNavigation();
-  const renderThumb = examinee => {
-    switch (examinee.status) {
-      case "NOT_CHECKED":
-        return (
-          <AntDesign
-            name="minuscircleo"
-            style={{ marginRight: 16 }}
-            size={32}
-            color="#CCC"
-          />
-        );
-      case "PASS":
-        return (
-          <AntDesign
-            name="checkcircleo"
-            style={{ marginRight: 16 }}
-            size={32}
-            color="green"
-          />
-        );
-      case "NOT_PASS":
-        return (
-          <AntDesign
-            name="closecircleo"
-            style={{ marginRight: 16 }}
-            size={32}
-            color="red"
-          />
-        );
-      default:
-        return null;
-    }
-  };
   return (
     <StyledList>
-      {examinees.map((examinee, index) => (
-        <Item
-          key={index}
-          arrow="horizontal"
-          onPress={() => navigate("Verify", { examinees, from: examinee })}
-          thumb={renderThumb(examinee)}
-        >
-          {examinee.name}
-          <Brief>{`Permission: ${examinee.facePermission}`}</Brief>
-        </Item>
-      ))}
+      {examinees
+        .sort((a, b) => (a.seat > b.seat ? 1 : -1))
+        .map((examinee, index) => (
+          <Item
+            key={index}
+            arrow="horizontal"
+            onPress={() =>
+              navigate("Verify", { room, selectedExaminee: examinee })
+            }
+            thumb={<StatusIcon examinee={examinee} />}
+          >
+            {`${examinee.seat}. ${examinee.name}`}
+            <Brief>{`Permission: ${examinee.facePermission}`}</Brief>
+          </Item>
+        ))}
     </StyledList>
   );
 };
@@ -88,7 +59,7 @@ export const ExamineeScreen = () => {
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (
-        examinees && <ExamineesList examinees={examinees} />
+        examinees && <ExamineesList examinees={examinees} room={room} />
       )}
     </ScrollContainer>
   );
