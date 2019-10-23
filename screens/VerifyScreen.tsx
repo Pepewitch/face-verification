@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useContext } from "react";
 import styled from "styled-components/native";
 import { View, Text, Image, TouchableOpacity } from "react-native";
 import { FaceDetectCamera } from "../components/FaceDetectCamera";
@@ -9,6 +9,7 @@ import * as FaceDetector from "expo-face-detector";
 import * as ImageManipulator from "expo-image-manipulator";
 import _ from "lodash";
 import { useDocument } from "react-firebase-hooks/firestore";
+import { endpointContext } from "../context/endpoint";
 
 const { alert } = Modal;
 
@@ -75,7 +76,7 @@ const crop = async (uri, bounds) => {
   );
 };
 
-const verify = async (face, croppedFace) => {
+const verify = async (face, croppedFace, path) => {
   const originX = face["bounds"]["origin"]["x"];
   const originY = face["bounds"]["origin"]["y"];
 
@@ -105,17 +106,14 @@ const verify = async (face, croppedFace) => {
     ]
   };
 
-  const output = await fetch(
-    "https://rightguy-nauehecpba-an.a.run.app/classify",
-    {
-      method: "post",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(data)
-    }
-  );
+  const output = await fetch(path, {
+    method: "post",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
 
   const verified = await output.json();
   return verified;
@@ -141,13 +139,14 @@ const VerifyOutput = ({ verified, examinee }) => {
 const VerifyCamera = ({ examinee, onVerify }) => {
   const { hasCameraPermission } = usePermission();
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
+  const { path } = useContext(endpointContext);
   const onTakingPhoto = async photo => {
     setIsTakingPhoto(true);
     const { faces } = await detectFace(photo.uri);
     const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
     if (biggestFace) {
       const croppedFace = await crop(photo.uri, biggestFace.bounds);
-      const verified = await verify(biggestFace, croppedFace);
+      const verified = await verify(biggestFace, croppedFace, path);
       alert(
         "Verify",
         <VerifyOutput verified={verified} examinee={examinee} />,

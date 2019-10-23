@@ -11,6 +11,7 @@ import { VerifyScreen } from "./screens/VerifyScreen";
 import { fromRight } from "react-navigation-transitions";
 import { RoomScreen } from "./screens/RoomScreen";
 import { ExamineeScreen } from "./screens/ExamineeScreen";
+import { EndpointProvider } from "./context/endpoint";
 YellowBox.ignoreWarnings(["Setting a timer"]);
 
 const StyledView = styled.View`
@@ -80,10 +81,12 @@ export default () => {
   }, []);
   if (!isReady) return <AppLoading />;
   return (
-    <Provider>
-      <StyledView>
-        <AppContainer />
-      </StyledView>
-    </Provider>
+    <EndpointProvider>
+      <Provider>
+        <StyledView>
+          <AppContainer />
+        </StyledView>
+      </Provider>
+    </EndpointProvider>
   );
 };
