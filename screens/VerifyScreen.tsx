@@ -9,7 +9,6 @@ import * as FaceDetector from "expo-face-detector";
 import * as ImageManipulator from "expo-image-manipulator";
 import _ from "lodash";
 import { useDocument } from "react-firebase-hooks/firestore";
-import { StatusIcon } from "../components/StatusIcon";
 
 const { alert } = Modal;
 
@@ -59,32 +58,21 @@ const detectFace = async imageUri => {
   return await FaceDetector.detectFacesAsync(imageUri, options);
 };
 
-const resize = async uri => {
-  const actions = [
-    {
-      resize: { width: 1000 }
-    }
-  ];
-  const saveOptions = { format: ImageManipulator.SaveFormat.JPEG };
-  return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
-};
-
 const crop = async (uri, bounds) => {
-  const actions = [
-    {
-      crop: {
-        originX: bounds.origin.x,
-        originY: bounds.origin.y,
-        width: bounds.size.width,
-        height: bounds.size.height
+  return ImageManipulator.manipulateAsync(
+    uri,
+    [
+      {
+        crop: {
+          originX: bounds.origin.x,
+          originY: bounds.origin.y,
+          width: bounds.size.width,
+          height: bounds.size.height
+        }
       }
-    }
-  ];
-  const saveOptions = {
-    format: ImageManipulator.SaveFormat.JPEG,
-    base64: true
-  };
-  return ImageManipulator.manipulateAsync(uri, actions, saveOptions);
+    ],
+    { compress: 1, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+  );
 };
 
 const verify = async (face, croppedFace) => {
@@ -133,37 +121,43 @@ const verify = async (face, croppedFace) => {
   return verified;
 };
 
+const VerifyOutput = ({ verified, examinee }) => {
+  const same = verified.outputID.trim() === examinee.examineeId.trim();
+  return (
+    <View>
+      <Text style={{ alignSelf: "center" }}>
+        Recognition ID: {verified.outputID}
+      </Text>
+      <Text style={{ alignSelf: "center" }}>
+        Examinee ID: {examinee.examineeId}
+      </Text>
+      <Text style={{ alignSelf: "center", color: same ? "green" : "red" }}>
+        {same ? "Correct" : "Wrong"}
+      </Text>
+    </View>
+  );
+};
+
 const VerifyCamera = ({ examinee, onVerify }) => {
   const { hasCameraPermission } = usePermission();
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
-
   const onTakingPhoto = async photo => {
     setIsTakingPhoto(true);
-    const resized = await resize(photo.uri);
-    const { faces } = await detectFace(resized.uri);
+    const { faces } = await detectFace(photo.uri);
     const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
     if (biggestFace) {
-      const croppedFace = await crop(resized.uri, biggestFace.bounds);
+      const croppedFace = await crop(photo.uri, biggestFace.bounds);
       const verified = await verify(biggestFace, croppedFace);
       alert(
         "Verify",
-        <View>
-          <Text style={{ alignSelf: "center" }}>
-            Recognition ID: {verified.outputID}
-          </Text>
-          <Image
-            style={{ width: 250, height: 250 }}
-            resizeMode="contain"
-            source={{ uri: croppedFace.uri }}
-          />
-        </View>,
+        <VerifyOutput verified={verified} examinee={examinee} />,
         [
           {
-            text: "Cancel",
-            onPress: () => console.log("cancel"),
+            text: "NOT PASS",
+            onPress: () => onVerify("NOT_PASS"),
             style: "default"
           },
-          { text: "OK", onPress: () => console.log("ok") }
+          { text: "PASS", onPress: () => onVerify("PASS") }
         ]
       );
     } else {
