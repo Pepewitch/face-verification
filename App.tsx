@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components/native";
-import { Platform, StatusBar } from "react-native";
+import { Platform, StatusBar, YellowBox, View, StyleSheet } from "react-native";
 import { AppLoading } from "expo";
 import * as Font from "expo-font";
 import { Provider } from "@ant-design/react-native";
@@ -8,6 +8,10 @@ import { createAppContainer } from "react-navigation";
 import { createStackNavigator } from "react-navigation-stack";
 import { HomeScreen } from "./screens/HomeScreen";
 import { VerifyScreen } from "./screens/VerifyScreen";
+import { fromRight } from "react-navigation-transitions";
+import { RoomScreen } from "./screens/RoomScreen";
+import { ExamineeScreen } from "./screens/ExamineeScreen";
+YellowBox.ignoreWarnings(["Setting a timer"]);
 
 const StyledView = styled.View`
   padding-top: ${Platform.OS === "ios" ? 0 : StatusBar.currentHeight}px;
@@ -25,21 +29,43 @@ const loadFont = async () => {
   });
 };
 
+const gestureResponseDistance = { horizontal: 9999, vertical: 25 };
+
 const AppNavigator = createStackNavigator(
   {
     Home: {
       screen: HomeScreen
     },
+    Room: {
+      screen: RoomScreen,
+      navigationOptions: {
+        gestureResponseDistance
+      }
+    },
+    Examinee: {
+      screen: ExamineeScreen,
+      navigationOptions: {
+        gestureResponseDistance
+      }
+    },
     Verify: {
-      screen: VerifyScreen
+      screen: VerifyScreen,
+      navigationOptions: {
+        gestureResponseDistance
+      }
     }
   },
   {
     initialRouteName: "Home",
     headerMode: "none",
+    defaultNavigationOptions: {
+      gesturesEnabled: true
+    },
     navigationOptions: {
-      headerVisible: false
-    }
+      headerVisible: false,
+      header: null
+    },
+    transitionConfig: () => fromRight()
   }
 );
 

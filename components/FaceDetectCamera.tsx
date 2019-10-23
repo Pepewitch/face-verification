@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import * as Permissions from "expo-permissions";
 import styled from "styled-components/native";
 import {
   View,
@@ -14,6 +13,7 @@ import * as FaceDetector from "expo-face-detector";
 import _ from "lodash";
 import * as ImageManipulator from "expo-image-manipulator";
 import { Modal, Button, ActivityIndicator } from "@ant-design/react-native";
+import { usePermission } from "../hooks/usePermission";
 
 const { alert } = Modal;
 
@@ -58,20 +58,6 @@ const Backdrop = styled.View`
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.7);
 `;
-
-const usePermission = () => {
-  const [hasCameraPermission, setHasCameraPermission] = useState(null);
-  const [hasCameraRollPermission, setHasCameraRollPermission] = useState(null);
-  useEffect(() => {
-    Permissions.askAsync(Permissions.CAMERA).then(({ status }) => {
-      setHasCameraPermission(status === "granted");
-    });
-    Permissions.askAsync(Permissions.CAMERA_ROLL).then(({ status }) => {
-      setHasCameraRollPermission(status === "granted");
-    });
-  }, []);
-  return { hasCameraPermission, hasCameraRollPermission };
-};
 
 const validateFace = face => {
   return (
