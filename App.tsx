@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components/native";
 import { Platform, StatusBar, YellowBox, View, StyleSheet } from "react-native";
-import { AppLoading } from "expo";
+import { AppLoading, ScreenOrientation } from "expo";
 import * as Font from "expo-font";
 import { Provider } from "@ant-design/react-native";
 import { createAppContainer } from "react-navigation";
@@ -78,6 +78,7 @@ export default () => {
     loadFont().then(() => {
       setIsReady(true);
     });
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT);
   }, []);
   if (!isReady) return <AppLoading />;
   return (

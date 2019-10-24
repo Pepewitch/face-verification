@@ -24,6 +24,10 @@ const StyledList = styled(List)`
   align-self: stretch;
 `;
 
+const VersionText = styled.Text`
+  margin-bottom: 8px;
+`
+
 const ExamsList = ({ exams }) => {
   const { navigate } = useNavigation();
   return (
@@ -60,7 +64,7 @@ export const HomeScreen = () => {
   return (
     <ScrollContainer>
       <Title>RightGuy.</Title>
-      <Text>v. 1.01</Text>
+      <VersionText>v. 1.02</VersionText>
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (
