@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Text } from "react-native";
+import React, { useMemo, useState, Fragment } from "react";
+import { Text, TouchableOpacity } from "react-native";
 import { ActivityIndicator } from "@ant-design/react-native";
 import { useNavigationParam, useNavigation } from "react-navigation-hooks";
 import styled from "styled-components/native";
@@ -20,27 +20,60 @@ const ExamineeTitle = styled.Text`
   margin-bottom: 8px;
   align-self: flex-start;
 `;
+const ResetButton = styled.TouchableOpacity`
+  padding: 8px;
+  border-radius: 4px;
+  background: #eee;
+`
 
 const ExamineesList = ({ examinees, room }) => {
   const { navigate } = useNavigation();
+  const [resetting, setResetting] = useState(false);
+  const reset = async seat => {
+    setResetting(true);
+    const currentIndex = examinees.findIndex(e => e.seat === seat);
+    examinees[currentIndex].status = "NOT_CHECKED";
+    const examineesRef: firebase.firestore.DocumentReference = room.examinees;
+    await examineesRef.update({ examinees });
+    setResetting(false);
+  };
   return (
-    <StyledList>
-      {examinees
-        .sort((a, b) => (a.seat > b.seat ? 1 : -1))
-        .map((examinee, index) => (
-          <Item
-            key={index}
-            arrow="horizontal"
-            onPress={() =>
-              navigate("Verify", { room, selectedExaminee: examinee })
-            }
-            thumb={<StatusIcon examinee={examinee} />}
-          >
-            {`${examinee.seat}. ${examinee.name}`}
-            <Brief>{`Permission: ${examinee.facePermission}`}</Brief>
-          </Item>
-        ))}
-    </StyledList>
+    <Fragment>
+      <StyledList>
+        {examinees
+          .sort((a, b) => (a.seat > b.seat ? 1 : -1))
+          .map((examinee, index) => (
+            <Item
+              key={index}
+              arrow="horizontal"
+              onPress={() =>
+                navigate("Verify", { room, selectedExaminee: examinee })
+              }
+              thumb={<StatusIcon examinee={examinee} />}
+              extra={
+                examinee.status !== "NOT_CHECKED" && (
+                  <ResetButton
+                    onPress={() => {
+                      reset(examinee.seat);
+                    }}
+                  >
+                    <Text>Reset</Text>
+                  </ResetButton>
+                )
+              }
+            >
+              {`${examinee.seat}. ${examinee.name}`}
+              <Brief>{`Permission: ${examinee.facePermission}`}</Brief>
+            </Item>
+          ))}
+      </StyledList>
+      <ActivityIndicator
+        size="large"
+        toast
+        text="Resetting..."
+        animating={resetting}
+      />
+    </Fragment>
   );
 };
 

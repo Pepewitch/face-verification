@@ -44,7 +44,7 @@ const SkipButton = styled.TouchableOpacity`
 
 const RedBoldText = styled.Text`
   color: red;
-  font-weight: bolder;
+  font-weight: bold;
 `;
 
 const NoPermission = () => {
@@ -122,6 +122,34 @@ const verify = async (face, croppedFace, path) => {
   return verified;
 };
 
+const ForceCheckingContainer = styled.View`
+  position: absolute;
+  align-self: center;
+  padding: 24px;
+  background-color: white;
+  border-radius: 16px;
+`;
+const CheckingButton = styled.TouchableOpacity`
+  padding: 16px 32px;
+  background: #eee;
+`;
+const CheckingText = styled.Text`
+  font-size: 16px;
+`;
+
+const ForceCheckingView = ({ onVerify }) => {
+  return (
+    <ForceCheckingContainer>
+      <CheckingButton onPress={() => onVerify("PASS")}>
+        <CheckingText>PASS</CheckingText>
+      </CheckingButton>
+      <CheckingButton onPress={() => onVerify("NOT PASS")}>
+        <CheckingText>NOT PASS</CheckingText>
+      </CheckingButton>
+    </ForceCheckingContainer>
+  );
+};
+
 const VerifyOutput = ({ verified, examinee }) => {
   const same = verified.outputID.trim() === examinee.examineeId.trim();
   return (
@@ -185,7 +213,7 @@ const VerifyCamera = ({ examinee, onVerify }) => {
       }
       setIsTakingPhoto(false);
     } catch (error) {
-      alert("Error", "Please try again.", [
+      alert("Error", error.message, [
         { text: "Close", onPress: () => console.log("ok") }
       ]);
       setIsTakingPhoto(false);
@@ -228,16 +256,23 @@ export const VerifyScreen = () => {
     }
   };
   const onVerify = async status => {
-    setVerifying(true);
-    const currentIndex = examinees.findIndex(
-      e => e.examineeId === selectedExaminee.examineeId
-    );
-    const currentSeat = examinees[currentIndex].seat;
-    examinees[currentIndex].status = status;
-    const examineesRef: firebase.firestore.DocumentReference = room.examinees;
-    await examineesRef.update({ examinees });
-    setVerifying(false);
-    setNext(currentSeat + 1);
+    try {
+      setVerifying(true);
+      const currentIndex = examinees.findIndex(
+        e => e.examineeId === selectedExaminee.examineeId
+      );
+      const currentSeat = examinees[currentIndex].seat;
+      examinees[currentIndex].status = status;
+      const examineesRef: firebase.firestore.DocumentReference = room.examinees;
+      await examineesRef.update({ examinees });
+      setVerifying(false);
+      setNext(currentSeat + 1);
+    } catch (error) {
+      setVerifying(false);
+      alert("Update status failed.", "Please try again.", [
+        { text: "Close", onPress: () => console.log("ok") }
+      ]);
+    }
   };
   const skip = () => {
     setNext(selectedExaminee.seat + 1);
@@ -271,6 +306,9 @@ export const VerifyScreen = () => {
         text="Loading..."
         animating={verifying}
       />
+      {!selectedExaminee.facePermission && (
+        <ForceCheckingView onVerify={onVerify} />
+      )}
     </Container>
   );
 };
