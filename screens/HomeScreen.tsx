@@ -60,6 +60,7 @@ export const HomeScreen = () => {
   return (
     <ScrollContainer>
       <Title>RightGuy.</Title>
+      <Text>v. 1.01</Text>
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (
