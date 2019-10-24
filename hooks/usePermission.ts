@@ -7,9 +7,9 @@ export const usePermission = () => {
   useEffect(() => {
     Permissions.askAsync(Permissions.CAMERA).then(({ status }) => {
       setHasCameraPermission(status === "granted");
-    });
-    Permissions.askAsync(Permissions.CAMERA_ROLL).then(({ status }) => {
-      setHasCameraRollPermission(status === "granted");
+      Permissions.askAsync(Permissions.CAMERA_ROLL).then(({ status }) => {
+        setHasCameraRollPermission(status === "granted");
+      });
     });
   }, []);
   return { hasCameraPermission, hasCameraRollPermission };

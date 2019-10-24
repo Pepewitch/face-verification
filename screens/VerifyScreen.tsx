@@ -34,6 +34,7 @@ const Header = styled.View`
   width: 100%;
   align-items: center;
   background-color: rgba(0, 0, 0, 0.8);
+  z-index: 9;
 `;
 
 const SkipButton = styled.TouchableOpacity`
@@ -128,10 +129,15 @@ const ForceCheckingContainer = styled.View`
   padding: 24px;
   background-color: white;
   border-radius: 16px;
+  align-items: center;
 `;
 const CheckingButton = styled.TouchableOpacity`
   padding: 16px 32px;
+  border-radius: 4px;
+  align-self: stretch;
+  align-items: center;
   background: #eee;
+  margin-bottom: 8px;
 `;
 const CheckingText = styled.Text`
   font-size: 16px;
