@@ -175,7 +175,7 @@ const VerifyOutput = ({ verified, examinee }) => {
           fontWeight: "bold"
         }}
       >
-        {same ? "Correct" : "Wrong"}
+        {same ? "Match" : "No match"}
       </Text>
     </View>
   );
