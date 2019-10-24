@@ -120,7 +120,7 @@ export const FaceDetectCamera = ({ children, onTakingPhoto }) => {
           ref={cameraRef}
           width={imageWidth}
           height={imageHeight}
-          ratio="16:9"
+          ratio="4:3"
           pictureSize="1280x720"
           onFacesDetected={onFacesDetected}
           faceDetectorSettings={{

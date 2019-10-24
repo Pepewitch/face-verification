@@ -33,6 +33,7 @@ const Header = styled.View`
   justify-content: space-between;
   width: 100%;
   align-items: center;
+  background-color: rgba(0, 0, 0, 0.8);
 `;
 
 const SkipButton = styled.TouchableOpacity`
@@ -54,7 +55,9 @@ const detectFace = async imageUri => {
   const options = {
     mode: FaceDetector.Constants.Mode.fast,
     detectLandmarks: FaceDetector.Constants.Landmarks.all,
-    runClassifications: FaceDetector.Constants.Classifications.none
+    runClassifications: FaceDetector.Constants.Classifications.none,
+    minDetectionInterval: 0,
+    tracking: true
   };
   return await FaceDetector.detectFacesAsync(imageUri, options);
 };
@@ -129,7 +132,15 @@ const VerifyOutput = ({ verified, examinee }) => {
       <Text style={{ alignSelf: "center" }}>
         Examinee ID: {examinee.examineeId}
       </Text>
-      <Text style={{ alignSelf: "center", color: same ? "green" : "red" }}>
+      <Text
+        style={{
+          alignSelf: "center",
+          color: same ? "green" : "red",
+          marginTop: 8,
+          fontSize: 16,
+          fontWeight: "bold"
+        }}
+      >
         {same ? "Correct" : "Wrong"}
       </Text>
     </View>
@@ -141,30 +152,44 @@ const VerifyCamera = ({ examinee, onVerify }) => {
   const [isTakingPhoto, setIsTakingPhoto] = useState(false);
   const { path } = useContext(endpointContext);
   const onTakingPhoto = async photo => {
-    setIsTakingPhoto(true);
-    const { faces } = await detectFace(photo.uri);
-    const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
-    if (biggestFace) {
-      const croppedFace = await crop(photo.uri, biggestFace.bounds);
-      const verified = await verify(biggestFace, croppedFace, path);
-      alert(
-        "Verify",
-        <VerifyOutput verified={verified} examinee={examinee} />,
-        [
-          {
-            text: "NOT PASS",
-            onPress: () => onVerify("NOT_PASS"),
-            style: "default"
-          },
-          { text: "PASS", onPress: () => onVerify("PASS") }
-        ]
-      );
-    } else {
-      alert("Verify", "Cannot detect face, please try again.", [
-        { text: "OK", onPress: () => console.log("ok") }
+    try {
+      setIsTakingPhoto(true);
+      const { faces } = await detectFace(photo.uri);
+      const biggestFace = _.maxBy(faces, face => face.bounds.size.width);
+      if (biggestFace) {
+        const croppedFace = await crop(photo.uri, biggestFace.bounds);
+        const verified = await verify(biggestFace, croppedFace, path);
+        alert(
+          "Verify",
+          <VerifyOutput verified={verified} examinee={examinee} />,
+          [
+            {
+              text: "NOT PASS",
+              onPress: () => {
+                onVerify("NOT_PASS");
+              },
+              style: "default"
+            },
+            {
+              text: "PASS",
+              onPress: () => {
+                onVerify("PASS");
+              }
+            }
+          ]
+        );
+      } else {
+        alert("Verify", "Cannot detect face, please try again.", [
+          { text: "OK", onPress: () => console.log("ok") }
+        ]);
+      }
+      setIsTakingPhoto(false);
+    } catch (error) {
+      alert("Error", "Please try again.", [
+        { text: "Close", onPress: () => console.log("ok") }
       ]);
+      setIsTakingPhoto(false);
     }
-    setIsTakingPhoto(false);
   };
 
   if (!hasCameraPermission) {
@@ -211,6 +236,7 @@ export const VerifyScreen = () => {
     examinees[currentIndex].status = status;
     const examineesRef: firebase.firestore.DocumentReference = room.examinees;
     await examineesRef.update({ examinees });
+    setVerifying(false);
     setNext(currentSeat + 1);
   };
   const skip = () => {

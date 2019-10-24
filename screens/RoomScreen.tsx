@@ -45,7 +45,7 @@ const useRooms = roomsRef => {
   return { rooms, loading, error };
 };
 
-const RoomsList = ({ rooms }) => {
+const RoomsList = ({ rooms, exam }) => {
   const { navigate } = useNavigation();
   return (
     <StyledList>
@@ -53,7 +53,7 @@ const RoomsList = ({ rooms }) => {
         <Item
           key={index}
           arrow="horizontal"
-          onPress={() => navigate("Examinee", { room })}
+          onPress={() => navigate("Examinee", { exam, room })}
         >
           {`Building ${room.building}`}
           <Brief>{room.room}</Brief>
@@ -71,11 +71,11 @@ export const RoomScreen = () => {
   }
   return (
     <ScrollContainer>
-      <RoomTitle>Room</RoomTitle>
+      <RoomTitle>{exam.title}</RoomTitle>
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (
-        <RoomsList rooms={rooms} />
+        <RoomsList exam={exam} rooms={rooms} />
       )}
     </ScrollContainer>
   );

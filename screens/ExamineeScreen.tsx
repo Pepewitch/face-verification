@@ -46,6 +46,7 @@ const ExamineesList = ({ examinees, room }) => {
 
 export const ExamineeScreen = () => {
   const room = useNavigationParam("room");
+  const exam = useNavigationParam("exam");
   const [snapshot, loading, error] = useDocument(room.examinees);
   const { examinees } = useMemo(() => (snapshot ? snapshot.data() : {}), [
     snapshot
@@ -55,7 +56,9 @@ export const ExamineeScreen = () => {
   }
   return (
     <ScrollContainer>
-      <ExamineeTitle>Examinees</ExamineeTitle>
+      <ExamineeTitle>
+        {`${exam.title} - Building ${room.building} (${room.room})`}
+      </ExamineeTitle>
       {loading ? (
         <ActivityIndicator size="large" />
       ) : (

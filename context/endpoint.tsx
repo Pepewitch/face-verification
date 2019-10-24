@@ -13,7 +13,7 @@ export const EndpointProvider = ({ children }) => {
   );
   const value = useMemo(() => {
     if (snapshot) {
-      return (snapshot.data() || defaultEndpoint) as { path: string };
+      return { path: snapshot.data().path || defaultEndpoint.path };
     }
     return defaultEndpoint;
   }, [snapshot]);
